@@ -1,0 +1,281 @@
+import math
+
+from backend.app.indexing.embedding_generator import EmbeddingGenerator
+from backend.app.discovery.requirement_matcher import RepositoryRequirementMatcher
+
+
+class ExternalRepositoryRankingService:
+
+    def __init__(self):
+
+        self.embedding_generator = (
+            EmbeddingGenerator()
+        )
+
+        self.requirement_matcher = (
+            RepositoryRequirementMatcher()
+        )
+
+    def rank(
+        self,
+        query: str,
+        repositories: list,
+    ) -> list:
+
+        if not repositories:
+            return []
+
+        query_embedding = (
+            self.embedding_generator.generate(
+                query
+            )
+        )
+
+        ranked = []
+
+        for repository in repositories:
+
+            searchable_text = (
+                self._build_searchable_text(
+                    repository
+                )
+            )
+
+            repository_embedding = (
+                self.embedding_generator.generate(
+                    searchable_text
+                )
+            )
+
+            semantic_score = (
+                self._cosine_similarity(
+                    query_embedding,
+                    repository_embedding,
+                )
+            )
+
+            metadata_score = (
+                self._metadata_score(
+                    repository
+                )
+            )
+
+            popularity_score = (
+                self._popularity_score(
+                    repository
+                )
+            )
+
+            health_score = (
+                repository
+                .get(
+                    "repository_health",
+                    {},
+                )
+                .get(
+                    "health_score",
+                    0,
+                )
+            )
+
+            requirement_match = (
+                self.requirement_matcher.match(
+                    query=query,
+                    repository=repository,
+                )
+            )
+
+            requirement_score = (
+                requirement_match.get(
+                    "requirement_score",
+                    0,
+                )
+            )
+
+            final_score = (
+                semantic_score * 0.35
+                + requirement_score * 0.30
+                + health_score * 0.15
+                + metadata_score * 0.10
+                + popularity_score * 0.10
+            )
+
+            ranked.append({
+                **repository,
+                "requirement_match":
+                    requirement_match,
+                "ranking": {
+                    "semantic_score": round(
+                        semantic_score,
+                        4,
+                    ),
+                    "requirement_score": round(
+                        requirement_score,
+                        4,
+                    ),
+                    "health_score": round(
+                        health_score,
+                        4,
+                    ),
+                    "metadata_score": round(
+                        metadata_score,
+                        4,
+                    ),
+                    "popularity_score": round(
+                        popularity_score,
+                        4,
+                    ),
+                    "final_score": round(
+                        final_score,
+                        4,
+                    ),
+                },
+            })
+
+        return sorted(
+            ranked,
+            key=lambda item:
+                item["ranking"][
+                    "final_score"
+                ],
+            reverse=True,
+        )
+
+    def _build_searchable_text(
+        self,
+        repository,
+    ):
+
+        analysis = repository.get(
+            "analysis",
+            {},
+        )
+
+        architecture = repository.get(
+            "architecture_intelligence",
+            {},
+        )
+
+        parts = [
+            repository.get("name") or "",
+            repository.get("full_name") or "",
+            repository.get("description") or "",
+            repository.get("language") or "",
+            " ".join(
+                repository.get("topics") or []
+            ),
+            analysis.get("summary") or "",
+            " ".join(
+                analysis.get(
+                    "technologies",
+                    [],
+                )
+            ),
+            " ".join(
+                architecture.get(
+                    "frameworks",
+                    [],
+                )
+            ),
+            " ".join(
+                architecture.get(
+                    "architectures",
+                    [],
+                )
+            ),
+        ]
+
+        return "\n".join(
+            part
+            for part in parts
+            if part
+        )
+
+    def _cosine_similarity(
+        self,
+        vector_a,
+        vector_b,
+    ):
+
+        if not vector_a or not vector_b:
+            return 0.0
+
+        dot_product = sum(
+            a * b
+            for a, b in zip(
+                vector_a,
+                vector_b,
+            )
+        )
+
+        magnitude_a = math.sqrt(
+            sum(
+                a * a
+                for a in vector_a
+            )
+        )
+
+        magnitude_b = math.sqrt(
+            sum(
+                b * b
+                for b in vector_b
+            )
+        )
+
+        if (
+            magnitude_a == 0
+            or magnitude_b == 0
+        ):
+            return 0.0
+
+        return (
+            dot_product
+            / (
+                magnitude_a
+                * magnitude_b
+            )
+        )
+
+    def _popularity_score(
+        self,
+        repository,
+    ):
+
+        stars = (
+            repository.get("stars")
+            or 0
+        )
+
+        return min(
+            math.log10(stars + 1)
+            / 5,
+            1.0,
+        )
+
+    def _metadata_score(
+        self,
+        repository,
+    ):
+
+        score = 0.0
+
+        if repository.get("description"):
+            score += 0.25
+
+        if repository.get("language"):
+            score += 0.20
+
+        if repository.get("topics"):
+            score += 0.20
+
+        if repository.get(
+            "readme_available"
+        ):
+            score += 0.25
+
+        if not repository.get(
+            "archived"
+        ):
+            score += 0.10
+
+        return min(score, 1.0)

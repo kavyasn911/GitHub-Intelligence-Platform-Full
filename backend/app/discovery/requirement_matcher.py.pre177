@@ -1,0 +1,106 @@
+import re
+
+
+class RepositoryRequirementMatcher:
+
+    def match(
+        self,
+        query: str,
+        repository: dict,
+    ) -> dict:
+
+        query_terms = self._terms(query)
+
+        analysis = repository.get(
+            "analysis",
+            {},
+        )
+
+        technologies = analysis.get(
+            "technologies",
+            [],
+        )
+
+        repository_text = " ".join([
+            repository.get("name") or "",
+            repository.get("description") or "",
+            repository.get("language") or "",
+            " ".join(repository.get("topics") or []),
+            analysis.get("summary") or "",
+            " ".join(technologies),
+        ])
+
+        repository_terms = self._terms(
+            repository_text
+        )
+
+        matched = sorted(
+            query_terms.intersection(
+                repository_terms
+            )
+        )
+
+        missing = sorted(
+            query_terms.difference(
+                repository_terms
+            )
+        )
+
+        if query_terms:
+            coverage = (
+                len(matched)
+                / len(query_terms)
+            )
+        else:
+            coverage = 0.0
+
+        return {
+            "requirement_score": round(
+                coverage,
+                4,
+            ),
+            "requirement_percentage": round(
+                coverage * 100,
+                2,
+            ),
+            "matched_requirements": matched,
+            "missing_requirements": missing,
+            "detected_technologies":
+                technologies,
+        }
+
+    def _terms(self, text):
+
+        stop_words = {
+            "a",
+            "an",
+            "the",
+            "and",
+            "or",
+            "for",
+            "to",
+            "of",
+            "with",
+            "using",
+            "build",
+            "create",
+            "make",
+            "need",
+            "want",
+            "platform",
+            "application",
+            "system",
+            "project",
+        }
+
+        words = re.findall(
+            r"[A-Za-z0-9+#.-]+",
+            str(text).lower(),
+        )
+
+        return {
+            word
+            for word in words
+            if word not in stop_words
+            and len(word) > 1
+        }

@@ -1,0 +1,69 @@
+import re
+
+
+class QueryExpansionEngine:
+
+    DOMAIN_EXPANSIONS={
+
+        "agent":[
+            "ai agent",
+            "agent framework",
+            "agent runtime",
+            "multi-agent",
+            "agent orchestration",
+            "autonomous agent",
+        ],
+
+        "openclaw":[
+            "openclaw",
+            "hermes agent",
+            "agent framework",
+            "agent runtime",
+        ],
+
+        "kubernetes":[
+            "kubernetes",
+            "k8s",
+            "operator",
+            "controller",
+        ],
+
+        "monitoring":[
+            "observability",
+            "telemetry",
+            "metrics",
+            "prometheus",
+            "grafana",
+        ],
+
+        "inventory":[
+            "inventory management",
+            "warehouse management",
+            "erp",
+            "stock management",
+        ],
+
+        "chatbot":[
+            "chatbot",
+            "conversational ai",
+            "assistant",
+            "llm chatbot",
+        ],
+
+    }
+
+    def expand(self,query:str)->list[str]:
+
+        query=query.lower().strip()
+
+        expansions=[query]
+
+        for keyword,values in self.DOMAIN_EXPANSIONS.items():
+
+            if keyword in query:
+
+                expansions.extend(values)
+
+        expansions=list(dict.fromkeys(expansions))
+
+        return expansions

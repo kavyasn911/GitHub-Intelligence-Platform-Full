@@ -1,0 +1,103 @@
+import re
+
+
+class RepositoryRelevanceFilter:
+
+    STOP_WORDS = {
+        "a", "an", "the", "and", "or", "for", "to",
+        "of", "with", "using", "build", "create", "make",
+        "need", "want", "platform", "application", "system",
+        "project", "solution", "software", "tool"
+    }
+
+    def filter(
+        self,
+        query: str,
+        repositories: list,
+        minimum_overlap: int = 1,
+    ) -> dict:
+
+        query_terms = self._terms(query)
+
+        accepted = []
+        rejected = []
+
+        for repository in repositories:
+
+            repository_terms = self._repository_terms(repository)
+
+            overlap = sorted(
+                query_terms.intersection(repository_terms)
+            )
+
+            overlap_count = len(overlap)
+
+            semantic_context_available = bool(
+                repository.get("description")
+                or repository.get("topics")
+                or repository.get("readme_available")
+            )
+
+            accepted_repository = (
+                overlap_count >= minimum_overlap
+                and semantic_context_available
+                and not repository.get("archived", False)
+            )
+
+            enriched = {
+                **repository,
+                "relevance_gate": {
+                    "accepted": accepted_repository,
+                    "query_terms": sorted(query_terms),
+                    "matched_terms": overlap,
+                    "matched_term_count": overlap_count,
+                },
+            }
+
+            if accepted_repository:
+                accepted.append(enriched)
+            else:
+                rejected.append(enriched)
+
+        return {
+            "accepted": accepted,
+            "rejected": rejected,
+            "accepted_count": len(accepted),
+            "rejected_count": len(rejected),
+        }
+
+    def _repository_terms(self, repository: dict):
+
+        analysis = repository.get("analysis", {})
+        architecture = repository.get(
+            "architecture_intelligence",
+            {},
+        )
+
+        text = " ".join([
+            repository.get("name") or "",
+            repository.get("full_name") or "",
+            repository.get("description") or "",
+            repository.get("language") or "",
+            " ".join(repository.get("topics") or []),
+            analysis.get("summary") or "",
+            " ".join(analysis.get("technologies") or []),
+            " ".join(architecture.get("frameworks") or []),
+            " ".join(architecture.get("architectures") or []),
+        ])
+
+        return self._terms(text)
+
+    def _terms(self, text: str):
+
+        words = re.findall(
+            r"[A-Za-z0-9+#.-]+",
+            str(text).lower(),
+        )
+
+        return {
+            word
+            for word in words
+            if word not in self.STOP_WORDS
+            and len(word) > 1
+        }

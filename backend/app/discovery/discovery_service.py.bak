@@ -1,0 +1,99 @@
+from backend.app.search.advanced_search import AdvancedSearchService
+
+from backend.app.discovery.query_planner import GitHubDiscoveryQueryPlanner
+from backend.app.discovery.github_search import GlobalGitHubSearchService
+from backend.app.discovery.external_analyzer import ExternalRepositoryAnalyzer
+from backend.app.discovery.external_ranking import ExternalRepositoryRankingService
+from backend.app.discovery.reuse_recommendation import RepositoryReuseRecommendationService
+
+
+class RepositoryDiscoveryService:
+
+    def __init__(self):
+        self.internal_search = AdvancedSearchService()
+        self.query_planner = GitHubDiscoveryQueryPlanner()
+        self.github_search = GlobalGitHubSearchService()
+        self.external_analyzer = ExternalRepositoryAnalyzer()
+        self.external_ranking = ExternalRepositoryRankingService()
+        self.reuse_service = RepositoryReuseRecommendationService()
+
+    def discover(
+        self,
+        query: str,
+        internal_limit: int = 5,
+        external_limit: int = 10,
+        result_limit: int = 5,
+    ) -> dict:
+
+        internal_results = self.internal_search.search(
+            query=query,
+            limit=internal_limit,
+        )
+
+        query_plan = self.query_planner.plan(query)
+
+        external_search = self.github_search.search(
+            queries=query_plan["github_queries"],
+            limit=external_limit,
+        )
+
+        analyzed_repositories = []
+
+        for repository in external_search.get(
+            "repositories",
+            [],
+        ):
+            analyzed_repositories.append(
+                self.external_analyzer.analyze(
+                    repository
+                )
+            )
+
+        ranked_repositories = self.external_ranking.rank(
+            query=query,
+            repositories=analyzed_repositories,
+        )
+
+        recommendations = []
+
+        for repository in ranked_repositories[:result_limit]:
+
+            recommendations.append({
+                **repository,
+                "reuse_intelligence":
+                    self.reuse_service.recommend(
+                        repository=repository,
+                        query=query,
+                    ),
+            })
+
+        best_candidate = (
+            recommendations[0]
+            if recommendations
+            else None
+        )
+
+        return {
+            "status": "success",
+            "query": query,
+            "strategy":
+                "intelligent_internal_and_global_github_discovery",
+            "query_plan": query_plan,
+            "internal_repository_matches":
+                internal_results,
+            "github_search": {
+                "candidate_pool_size":
+                    external_search.get("count", 0),
+                "queries_executed":
+                    external_search.get("queries", []),
+                "errors":
+                    external_search.get("errors", []),
+            },
+            "external_candidate_count":
+                len(recommendations),
+            "best_external_candidate":
+                best_candidate,
+            "external_recommendations":
+                recommendations,
+        }
+

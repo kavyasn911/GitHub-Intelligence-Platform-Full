@@ -1,0 +1,370 @@
+import math
+
+from backend.app.search.advanced_search import AdvancedSearchService
+from backend.app.discovery.requirement_intelligence import RequirementIntelligenceService
+from backend.app.discovery.github_search import GlobalGitHubSearchService
+from backend.app.discovery.external_analyzer import ExternalRepositoryAnalyzer
+from backend.app.discovery.external_ranking import ExternalRepositoryRankingService
+from backend.app.discovery.reuse_recommendation import RepositoryReuseRecommendationService
+from backend.app.discovery.recommendation_synthesis import DiscoveryRecommendationSynthesisService
+from backend.app.discovery.relevance_filter import RepositoryRelevanceFilter
+
+
+class RepositoryDiscoveryService:
+
+    def __init__(self):
+        self.internal_search = AdvancedSearchService()
+        self.requirement_intelligence = RequirementIntelligenceService()
+        self.github_search = GlobalGitHubSearchService()
+        self.external_analyzer = ExternalRepositoryAnalyzer()
+        self.external_ranking = ExternalRepositoryRankingService()
+        self.reuse_service = RepositoryReuseRecommendationService()
+        self.synthesis_service = DiscoveryRecommendationSynthesisService()
+        self.relevance_filter = RepositoryRelevanceFilter()
+
+    def discover(
+        self,
+        query: str,
+        internal_limit: int = 5,
+        external_limit: int = 10,
+        result_limit: int = 5,
+        synthesize: bool = True,
+    ) -> dict:
+
+        requirement_result = self.requirement_intelligence.analyze(query)
+
+        specification = requirement_result.get(
+            "specification",
+            {},
+        )
+
+        semantic_query = (
+            self.requirement_intelligence.build_semantic_query(
+                requirement_result
+            )
+        )
+
+        search_queries = self._build_search_queries(
+            query=query,
+            specification=specification,
+        )
+
+        internal_results = self.internal_search.search(
+            query=semantic_query or query,
+            limit=internal_limit,
+        )
+
+        external_search = self.github_search.search(
+            queries=search_queries,
+            limit=external_limit,
+        )
+
+        # --------------------------------------------------
+        # SEMANTIC PERFORMANCE PREFILTER
+        #
+        # Deep README analysis is expensive.
+        #
+        # Instead of selecting repositories mainly by
+        # popularity, generate embeddings for all lightweight
+        # GitHub candidates in one batch and retain the most
+        # semantically relevant repositories.
+        # --------------------------------------------------
+
+        raw_repositories = external_search.get(
+            "repositories",
+            [],
+        )
+
+        prefiltered_repositories = raw_repositories
+
+        if raw_repositories:
+
+            lightweight_texts = []
+
+            for repository in raw_repositories:
+
+                lightweight_texts.append(
+                    " ".join([
+                        repository.get("name") or "",
+                        repository.get("full_name") or "",
+                        repository.get("description") or "",
+                        repository.get("language") or "",
+                        " ".join(
+                            repository.get("topics") or []
+                        ),
+                    ])
+                )
+
+            embedding_texts = [
+                semantic_query or query,
+                *lightweight_texts,
+            ]
+
+            batch_embeddings = (
+                self.embedding_generator.generate_batch(
+                    embedding_texts
+                )
+            )
+
+            query_embedding = batch_embeddings[0]
+
+            repository_embeddings = (
+                batch_embeddings[1:]
+            )
+
+            semantic_candidates = []
+
+            for (
+                repository,
+                repository_embedding,
+            ) in zip(
+                raw_repositories,
+                repository_embeddings,
+            ):
+
+                semantic_score = sum(
+                    a * b
+                    for a, b in zip(
+                        query_embedding,
+                        repository_embedding,
+                    )
+                )
+
+                semantic_candidates.append({
+                    "repository": repository,
+                    "semantic_score": semantic_score,
+                })
+
+            semantic_candidates.sort(
+                key=lambda item:
+                    item["semantic_score"],
+                reverse=True,
+            )
+
+            prefiltered_repositories = [
+                item["repository"]
+                for item in semantic_candidates[:12]
+            ]
+
+        analyzed_repositories = []
+
+        for repository in prefiltered_repositories:
+
+            analyzed_repositories.append(
+                self.external_analyzer.analyze(
+                    repository
+                )
+            )
+
+        relevance_result = self.relevance_filter.filter(
+            query=semantic_query or query,
+            repositories=analyzed_repositories,
+            minimum_overlap=1,
+        )
+
+        relevant_repositories = relevance_result.get(
+            "accepted",
+            [],
+        )
+
+        ranked_repositories = self.external_ranking.rank(
+            query=semantic_query or query,
+            repositories=relevant_repositories,
+            specification=specification,
+        )
+
+        recommendations = []
+
+        for repository in ranked_repositories[:result_limit]:
+            recommendations.append({
+                **repository,
+                "reuse_intelligence": self.reuse_service.recommend(
+                    repository=repository,
+                    query=semantic_query or query,
+                ),
+            })
+
+        best_candidate = (
+            recommendations[0]
+            if recommendations
+            else None
+        )
+
+        discovery_result = {
+            "status": "success",
+            "query": query,
+            "strategy": "universal_requirement_driven_discovery",
+            "requirement_intelligence": {
+                "mode": requirement_result.get("mode"),
+                "provider": requirement_result.get("provider"),
+                "model": requirement_result.get("model"),
+                "specification": specification,
+                "semantic_query": semantic_query,
+            },
+            "query_plan": {
+                "original_query": query,
+                "search_queries": search_queries,
+                "query_count": len(search_queries),
+            },
+            "internal_repository_matches": internal_results,
+            "github_search": {
+                "candidate_pool_size": external_search.get(
+                    "count",
+                    0,
+                ),
+                "queries_executed": external_search.get(
+                    "queries",
+                    [],
+                ),
+                "errors": external_search.get(
+                    "errors",
+                    [],
+                ),
+            },
+            "relevance_filter": {
+                "accepted_count": relevance_result.get(
+                    "accepted_count",
+                    0,
+                ),
+                "rejected_count": relevance_result.get(
+                    "rejected_count",
+                    0,
+                ),
+            },
+            "external_candidate_count": len(recommendations),
+            "best_external_candidate": best_candidate,
+            "external_recommendations": recommendations,
+        }
+
+        if synthesize:
+            discovery_result["ai_recommendation"] = (
+                self.synthesis_service.synthesize(
+                    query=query,
+                    discovery_result=discovery_result,
+                )
+            )
+
+        return discovery_result
+
+    def _build_search_queries(
+        self,
+        query: str,
+        specification: dict,
+    ) -> list[str]:
+
+        search_queries = []
+
+        search_concepts = [
+            str(item).strip()
+            for item in specification.get(
+                "search_concepts",
+                [],
+            )
+            if item
+        ]
+
+        core_capabilities = [
+            str(item).strip()
+            for item in specification.get(
+                "core_capabilities",
+                [],
+            )
+            if item
+        ]
+
+        technologies = [
+            str(item).strip()
+            for item in specification.get(
+                "technologies",
+                [],
+            )
+            if item
+        ]
+
+        project_type = str(
+            specification.get(
+                "project_type",
+                "",
+            )
+        ).strip()
+
+        # Use extracted semantic concepts first.
+        search_queries.extend(
+            search_concepts[:5]
+        )
+
+        # Build capability-focused searches.
+        for capability in core_capabilities[:4]:
+
+            if technologies:
+                search_queries.append(
+                    " ".join([
+                        capability,
+                        *technologies[:3],
+                    ])
+                )
+            else:
+                search_queries.append(
+                    capability
+                )
+
+        # Build technology + intent search.
+        if technologies and core_capabilities:
+            search_queries.append(
+                " ".join([
+                    *technologies[:4],
+                    *core_capabilities[:2],
+                ])
+            )
+
+        # Project type is useful only when specific.
+        generic_project_types = {
+            "software project",
+            "application",
+            "web application",
+            "project",
+        }
+
+        if (
+            project_type
+            and project_type.lower()
+            not in generic_project_types
+        ):
+            search_queries.append(
+                project_type
+            )
+
+        # Normalize, deduplicate and enforce
+        # GitHub's search query length limit.
+        final_queries = []
+        seen = set()
+
+        for item in search_queries:
+
+            normalized = " ".join(
+                str(item).split()
+            ).strip()
+
+            if not normalized:
+                continue
+
+            if len(normalized) > 200:
+                normalized = normalized[:200].rsplit(
+                    " ",
+                    1,
+                )[0]
+
+            key = normalized.lower()
+
+            if key in seen:
+                continue
+
+            seen.add(key)
+            final_queries.append(normalized)
+
+        # Keep the search plan focused and fast.
+        return final_queries[:8]
+
+
+
+

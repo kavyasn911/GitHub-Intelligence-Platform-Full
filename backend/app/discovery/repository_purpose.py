@@ -1,0 +1,359 @@
+import re
+
+
+class RepositoryPurposeClassifier:
+
+    PURPOSE_CATEGORIES = {
+        "ai_agent_framework": {
+            "ai agent": 3.0,
+            "agent framework": 4.0,
+            "agent harness": 4.0,
+            "multi-agent": 3.0,
+            "multi agent": 3.0,
+            "autonomous agent": 3.0,
+            "agent orchestration": 4.0,
+            "agent runtime": 4.0,
+            "agent platform": 4.0,
+            "agent assistant": 2.0,
+        },
+
+        "agent_extension": {
+            "agent skill": 4.0,
+            "agent skills": 4.0,
+            "skill": 2.0,
+            "skills": 2.0,
+            "plugin": 3.0,
+            "plugins": 3.0,
+            "extension": 3.0,
+            "extensions": 3.0,
+            "addon": 3.0,
+            "add-on": 3.0,
+        },
+
+        "resource_collection": {
+            "awesome list": 4.0,
+            "awesome-list": 4.0,
+            "collection": 2.0,
+            "curated list": 4.0,
+            "resources": 2.0,
+            "examples": 1.5,
+            "templates": 3.0,
+            "template": 3.0,
+        },
+
+        "developer_tool": {
+            "developer tool": 4.0,
+            "cli": 2.0,
+            "desktop app": 3.0,
+            "configuration manager": 4.0,
+            "code editor": 4.0,
+            "development tool": 4.0,
+        },
+
+        "llm_platform": {
+            "llm platform": 4.0,
+            "multi-model": 3.0,
+            "multi model": 3.0,
+            "model gateway": 4.0,
+            "inference platform": 4.0,
+            "llm orchestration": 4.0,
+        },
+
+        "observability_platform": {
+            "monitoring": 2.0,
+            "observability": 4.0,
+            "telemetry": 3.0,
+            "metrics": 2.0,
+            "logging": 2.0,
+        },
+
+        "automation_platform": {
+            "automation platform": 4.0,
+            "workflow engine": 4.0,
+            "integration platform": 4.0,
+            "workflow automation": 4.0,
+        },
+
+        "knowledge_platform": {
+            "knowledge base": 4.0,
+            "retrieval augmented generation": 4.0,
+            "semantic search": 4.0,
+            "vector search": 4.0,
+            "rag platform": 4.0,
+        },
+    }
+
+    ROLE_OVERRIDES = {
+        "agent_extension": {
+            "skill",
+            "skills",
+            "plugin",
+            "plugins",
+            "extension",
+            "extensions",
+            "addon",
+            "add-on",
+        },
+
+        "resource_collection": {
+            "awesome",
+            "awesome list",
+            "awesome-list",
+            "curated list",
+            "templates",
+            "template collection",
+        },
+    }
+
+    def classify(
+        self,
+        repository: dict,
+    ) -> dict:
+
+        text = self._build_repository_text(
+            repository
+        )
+
+        normalized_text = self._normalize(text)
+
+        category_scores = {}
+        category_evidence = {}
+
+        for category, keywords in (
+            self.PURPOSE_CATEGORIES.items()
+        ):
+
+            matches = []
+            score = 0.0
+
+            for keyword, weight in keywords.items():
+
+                normalized_keyword = self._normalize(
+                    keyword
+                )
+
+                if self._contains_phrase(
+                    normalized_text,
+                    normalized_keyword,
+                ):
+
+                    matches.append(keyword)
+                    score += weight
+
+            category_scores[category] = round(
+                score,
+                4,
+            )
+
+            category_evidence[category] = sorted(
+                matches
+            )
+
+        role_override = self._detect_role_override(
+            repository=repository,
+            normalized_text=normalized_text,
+        )
+
+        # CONFIDENCE-AWARE PURPOSE DECISION
+
+        if category_scores:
+
+            strongest_category = max(
+                category_scores,
+                key=category_scores.get,
+            )
+
+            strongest_score = category_scores[
+                strongest_category
+            ]
+
+        else:
+
+            strongest_category = "unknown"
+            strongest_score = 0.0
+
+        primary_purpose = strongest_category
+        primary_score = strongest_score
+
+        override_applied = False
+
+        if role_override:
+
+            override_score = category_scores.get(
+                role_override,
+                0.0,
+            )
+
+            framework_score = category_scores.get(
+                "ai_agent_framework",
+                0.0,
+            )
+
+            if role_override == "agent_extension":
+
+                if (
+                    override_score >= 4.0
+                    and override_score
+                    > framework_score * 1.25
+                ):
+
+                    primary_purpose = role_override
+                    primary_score = override_score
+                    override_applied = True
+
+            elif role_override == "resource_collection":
+
+                if (
+                    override_score >= 4.0
+                    and override_score
+                    >= strongest_score
+                ):
+
+                    primary_purpose = role_override
+                    primary_score = override_score
+                    override_applied = True
+
+        if primary_score <= 0:
+
+            primary_purpose = "unknown"
+
+        if primary_score <= 0:
+
+            primary_purpose = "unknown"
+
+        return {
+            "primary_purpose": primary_purpose,
+            "purpose_score": round(
+                primary_score,
+                4,
+            ),
+            "category_scores": category_scores,
+            "evidence": category_evidence,
+            "role_override": role_override,
+            "override_applied": override_applied,
+        }
+
+    def _detect_role_override(
+        self,
+        repository: dict,
+        normalized_text: str,
+    ):
+
+        name = self._normalize(
+            repository.get("name") or ""
+        )
+
+        description = self._normalize(
+            repository.get("description") or ""
+        )
+
+        topics = {
+            self._normalize(topic)
+            for topic in (
+                repository.get("topics") or []
+            )
+        }
+
+        high_signal_text = " ".join([
+            name,
+            description,
+            " ".join(topics),
+        ])
+
+        for role, indicators in (
+            self.ROLE_OVERRIDES.items()
+        ):
+
+            for indicator in indicators:
+
+                normalized_indicator = self._normalize(
+                    indicator
+                )
+
+                if self._contains_phrase(
+                    high_signal_text,
+                    normalized_indicator,
+                ):
+
+                    return role
+
+        return None
+
+    def _contains_phrase(
+        self,
+        text: str,
+        phrase: str,
+    ) -> bool:
+
+        if not phrase:
+            return False
+
+        pattern = (
+            r"(?<![a-z0-9])"
+            + re.escape(phrase)
+            + r"(?![a-z0-9])"
+        )
+
+        return bool(
+            re.search(pattern, text)
+        )
+
+    def _build_repository_text(
+        self,
+        repository: dict,
+    ) -> str:
+
+        analysis = repository.get(
+            "analysis",
+            {},
+        )
+
+        architecture = repository.get(
+            "architecture_intelligence",
+            {},
+        )
+
+        parts = [
+            repository.get("name") or "",
+            repository.get("full_name") or "",
+            repository.get("description") or "",
+            " ".join(
+                repository.get("topics") or []
+            ),
+            analysis.get("summary") or "",
+            " ".join(
+                analysis.get("technologies") or []
+            ),
+            " ".join(
+                architecture.get("frameworks") or []
+            ),
+            " ".join(
+                architecture.get("architectures") or []
+            ),
+        ]
+
+        return " ".join(
+            str(part)
+            for part in parts
+            if part
+        )
+
+    def _normalize(
+        self,
+        text: str,
+    ) -> str:
+
+        text = str(text).lower()
+
+        text = re.sub(
+            r"[^a-z0-9+#.-]+",
+            " ",
+            text,
+        )
+
+        return re.sub(
+            r"\s+",
+            " ",
+            text,
+        ).strip()
+

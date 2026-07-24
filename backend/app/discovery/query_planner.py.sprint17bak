@@ -1,0 +1,75 @@
+import re
+
+
+class GitHubDiscoveryQueryPlanner:
+
+    STOP_WORDS = {
+        "a", "an", "the", "and", "or", "for", "to",
+        "of", "with", "that", "this", "build", "create",
+        "make", "need", "want", "platform", "application",
+        "system", "project", "using"
+    }
+
+    def plan(self, query: str) -> dict:
+
+        words = re.findall(
+            r"[A-Za-z0-9+#.-]+",
+            query
+        )
+
+        keywords = []
+
+        for word in words:
+
+            if word.lower() not in self.STOP_WORDS:
+                keywords.append(word)
+
+        keywords = list(dict.fromkeys(keywords))
+
+        queries = []
+
+        if keywords:
+            queries.append(
+                " ".join(keywords[:5])
+            )
+
+        technology_keywords = [
+            word
+            for word in keywords
+            if word.lower() in {
+                "python",
+                "java",
+                "javascript",
+                "typescript",
+                "react",
+                "fastapi",
+                "docker",
+                "kubernetes",
+                "redis",
+                "postgresql",
+                "neo4j",
+                "grafana",
+                "prometheus",
+                "ai",
+                "ml",
+                "llm",
+            }
+        ]
+
+        if technology_keywords:
+            queries.append(
+                " ".join(technology_keywords[:4])
+            )
+
+        if len(keywords) >= 3:
+            queries.append(
+                " ".join(keywords[:3])
+            )
+
+        queries = list(dict.fromkeys(queries))
+
+        return {
+            "original_query": query,
+            "keywords": keywords,
+            "github_queries": queries,
+        }

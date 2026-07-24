@@ -1,0 +1,198 @@
+class IntelligentReuseDecisionEngine:
+
+    def decide(
+        self,
+        query: str,
+        repository: dict,
+    ) -> dict:
+
+        ranking = repository.get("ranking", {})
+        requirements = repository.get("requirement_match", {})
+        health = repository.get("repository_health", {})
+        architecture = repository.get("architecture_intelligence", {})
+
+        final_score = float(ranking.get("final_score") or 0)
+        semantic_score = float(ranking.get("semantic_score") or 0)
+        requirement_score = float(requirements.get("requirement_score") or 0)
+        health_score = float(health.get("health_score") or 0)
+
+        archived = repository.get("archived", False)
+
+        matched = requirements.get("matched_requirements", [])
+        missing = requirements.get("missing_requirements", [])
+        technologies = architecture.get("technologies", [])
+        frameworks = architecture.get("frameworks", [])
+        architectures = architecture.get("architectures", [])
+
+        reusable_components = []
+
+        if frameworks:
+            reusable_components.append({
+                "type": "framework_stack",
+                "items": frameworks,
+            })
+
+        if technologies:
+            reusable_components.append({
+                "type": "technology_stack",
+                "items": technologies,
+            })
+
+        if architectures:
+            reusable_components.append({
+                "type": "architecture_patterns",
+                "items": architectures,
+            })
+
+        risks = []
+
+        if archived:
+            risks.append("Repository is archived.")
+
+        if health_score < 0.50:
+            risks.append("Repository health is below the recommended threshold.")
+
+        if requirement_score < 0.50:
+            risks.append("Repository covers less than half of the detected requirements.")
+
+        if missing:
+            risks.append(
+                f"{len(missing)} detected requirements are not covered."
+            )
+
+        if repository.get("stars", 0) == 0:
+            risks.append(
+                "Repository has no GitHub stars; community validation is limited."
+            )
+
+        if archived:
+            strategy = "reference_only"
+
+        elif (
+            requirement_score >= 0.80
+            and health_score >= 0.70
+            and semantic_score >= 0.60
+        ):
+            strategy = "reuse_directly"
+
+        elif (
+            requirement_score >= 0.65
+            and health_score >= 0.60
+        ):
+            strategy = "fork_and_extend"
+
+        elif (
+            requirement_score >= 0.45
+            and health_score >= 0.50
+        ):
+            strategy = "reuse_components"
+
+        elif semantic_score >= 0.40:
+            strategy = "architectural_reference"
+
+        else:
+            strategy = "build_new"
+
+        implementation_plan = self._implementation_plan(
+            strategy=strategy,
+            repository=repository,
+            missing=missing,
+            frameworks=frameworks,
+            technologies=technologies,
+        )
+
+        return {
+            "strategy": strategy,
+            "reuse_score": round(final_score * 100, 2),
+            "requirement_coverage": round(requirement_score * 100, 2),
+            "repository_health": round(health_score * 100, 2),
+            "semantic_alignment": round(semantic_score * 100, 2),
+            "matched_requirements": matched,
+            "missing_requirements": missing,
+            "reusable_components": reusable_components,
+            "risks": risks,
+            "implementation_plan": implementation_plan,
+        }
+
+    def _implementation_plan(
+        self,
+        strategy,
+        repository,
+        missing,
+        frameworks,
+        technologies,
+    ):
+
+        repository_name = repository.get("full_name")
+
+        if strategy == "reuse_directly":
+            actions = [
+                f"Clone and evaluate {repository_name}.",
+                "Run the project locally and validate core functionality.",
+                "Review security, licensing, dependencies, and deployment configuration.",
+                "Adapt configuration and branding for the target use case.",
+            ]
+
+        elif strategy == "fork_and_extend":
+            actions = [
+                f"Fork {repository_name}.",
+                "Preserve the reusable architecture and existing implementation.",
+                "Create a feature-gap backlog from the missing requirements.",
+                "Implement the missing capabilities as extensions.",
+                "Add organization-specific security, testing, and deployment controls.",
+            ]
+
+        elif strategy == "reuse_components":
+            actions = [
+                f"Inspect {repository_name} for reusable modules.",
+                "Identify independent frontend, backend, infrastructure, and AI components.",
+                "Extract suitable patterns or components.",
+                "Integrate them into the target architecture.",
+                "Build missing requirements separately.",
+            ]
+
+        elif strategy == "architectural_reference":
+            actions = [
+                f"Study the architecture of {repository_name}.",
+                "Document useful design patterns.",
+                "Avoid direct adoption of unrelated implementation details.",
+                "Build a new solution using validated architectural ideas.",
+            ]
+
+        elif strategy == "reference_only":
+            actions = [
+                f"Use {repository_name} only as reference.",
+                "Do not directly adopt the archived repository.",
+                "Extract useful architectural and implementation knowledge.",
+                "Select maintained alternatives before development.",
+            ]
+
+        else:
+            actions = [
+                "Start a new implementation.",
+                "Use discovered repositories only as engineering references.",
+                "Reuse compatible open-source libraries where appropriate.",
+                "Design the architecture around the complete requirement set.",
+            ]
+
+        if missing:
+            actions.append(
+                "Implement missing requirements: "
+                + ", ".join(missing)
+                + "."
+            )
+
+        if frameworks:
+            actions.append(
+                "Evaluate reusable frameworks: "
+                + ", ".join(frameworks)
+                + "."
+            )
+
+        return {
+            "recommended_action": strategy,
+            "steps": actions,
+            "missing_capabilities_to_build": missing,
+            "candidate_frameworks": frameworks,
+            "candidate_technologies": technologies,
+        }

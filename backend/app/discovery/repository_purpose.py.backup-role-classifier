@@ -1,0 +1,195 @@
+import re
+
+
+class RepositoryPurposeClassifier:
+
+    PURPOSE_CATEGORIES = {
+        "ai_agent_framework": {
+            "agent",
+            "agents",
+            "ai agent",
+            "agent framework",
+            "agent harness",
+            "multi-agent",
+            "multi agent",
+            "autonomous agent",
+            "agent orchestration",
+            "agent runtime",
+        },
+
+        "developer_tool": {
+            "developer tool",
+            "cli",
+            "desktop app",
+            "switch",
+            "configuration manager",
+            "code editor",
+            "development tool",
+        },
+
+        "llm_platform": {
+            "llm platform",
+            "multi-model",
+            "multi model",
+            "model gateway",
+            "inference platform",
+            "llm orchestration",
+        },
+
+        "observability_platform": {
+            "monitoring",
+            "observability",
+            "telemetry",
+            "metrics",
+            "logging",
+        },
+
+        "automation_platform": {
+            "automation",
+            "workflow",
+            "workflow engine",
+            "integration platform",
+        },
+
+        "knowledge_platform": {
+            "knowledge base",
+            "rag",
+            "retrieval augmented generation",
+            "semantic search",
+            "vector search",
+        },
+    }
+
+    def classify(
+        self,
+        repository: dict,
+    ) -> dict:
+
+        text = self._build_repository_text(
+            repository
+        )
+
+        normalized_text = self._normalize(text)
+
+        category_scores = {}
+
+        category_evidence = {}
+
+        for category, keywords in (
+            self.PURPOSE_CATEGORIES.items()
+        ):
+
+            matches = []
+
+            score = 0.0
+
+            for keyword in keywords:
+
+                normalized_keyword = (
+                    self._normalize(keyword)
+                )
+
+                if normalized_keyword in normalized_text:
+
+                    matches.append(keyword)
+
+                    if " " in keyword:
+                        score += 2.0
+                    else:
+                        score += 1.0
+
+            category_scores[category] = score
+
+            category_evidence[category] = sorted(
+                matches
+            )
+
+        if category_scores:
+
+            primary_purpose = max(
+                category_scores,
+                key=category_scores.get,
+            )
+
+            primary_score = category_scores[
+                primary_purpose
+            ]
+
+        else:
+
+            primary_purpose = "unknown"
+
+            primary_score = 0.0
+
+        if primary_score <= 0:
+
+            primary_purpose = "unknown"
+
+        return {
+            "primary_purpose": primary_purpose,
+            "purpose_score": round(
+                primary_score,
+                4,
+            ),
+            "category_scores": category_scores,
+            "evidence": category_evidence,
+        }
+
+    def _build_repository_text(
+        self,
+        repository: dict,
+    ) -> str:
+
+        analysis = repository.get(
+            "analysis",
+            {},
+        )
+
+        architecture = repository.get(
+            "architecture_intelligence",
+            {},
+        )
+
+        parts = [
+            repository.get("name") or "",
+            repository.get("full_name") or "",
+            repository.get("description") or "",
+            " ".join(
+                repository.get("topics") or []
+            ),
+            analysis.get("summary") or "",
+            " ".join(
+                analysis.get("technologies") or []
+            ),
+            " ".join(
+                architecture.get("frameworks") or []
+            ),
+            " ".join(
+                architecture.get("architectures") or []
+            ),
+        ]
+
+        return " ".join(
+            part
+            for part in parts
+            if part
+        )
+
+    def _normalize(
+        self,
+        text: str,
+    ) -> str:
+
+        text = str(text).lower()
+
+        text = re.sub(
+            r"[^a-z0-9+#.-]+",
+            " ",
+            text,
+        )
+
+        return re.sub(
+            r"\s+",
+            " ",
+            text,
+        ).strip()

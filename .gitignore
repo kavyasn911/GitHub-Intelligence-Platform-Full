@@ -1,0 +1,34 @@
+# Python
+.venv/
+.venv_old/
+__pycache__/
+*.py[cod]
+
+# Node
+node_modules/
+dist/
+
+# Environment
+.env
+
+# Logs
+logs/
+*.log
+
+# Cache
+cache/
+
+# Databases
+*.db
+
+# VS Code
+.vscode/
+
+# Old project backups
+frontend_old/
+frontend_buggy/
+frontend_rec/
+
+# OS files
+.DS_Store
+Thumbs.db
