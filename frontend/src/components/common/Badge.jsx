@@ -3,14 +3,16 @@ import { Box, Text } from "grommet";
 
 const TONE_BG = {
   accent: "accent-soft",
+  success: "success-soft",
   warning: "warning-soft",
   critical: "critical-soft",
-  info: "rgba(92, 200, 255, 0.12)",
+  info: "info-soft",
   "text-tertiary": "bg-surface-hover",
 };
 
 const TONE_FG = {
   accent: "accent-1",
+  success: "success",
   warning: "warning",
   critical: "critical",
   info: "info",

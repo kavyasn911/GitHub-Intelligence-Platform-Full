@@ -66,6 +66,21 @@ export function compareRepositoryAgent(repositoryName, limit = 5) {
   return apiGet(`/github/agents/compare/${encodeURIComponent(repositoryName)}`, { limit });
 }
 
+// GET /github/agents/llm/health
+export function getAgentLlmHealth() {
+  return apiGet("/github/agents/llm/health");
+}
+
+// GET /github/agents/route — which agent would handle a query, without running it
+export function routeAgentQuery(query) {
+  return apiGet("/github/agents/route", { query });
+}
+
+// GET /github/intelligence/status
+export function getIntelligenceStatus() {
+  return apiGet("/github/intelligence/status");
+}
+
 // GET /github/recommendations/{repository_name} -> vector-similarity
 // recommendations against the indexed repository set (distinct from
 // getGraphSimilarRepositories, which walks the knowledge graph instead

@@ -1,9 +1,20 @@
 import React from "react";
-import { Box, Button, Text, Avatar } from "grommet";
-import { Add, Dashboard, Search, Save, Configure, FormPrevious, Folder, FormDown, Trash, Cluster } from "grommet-icons";
+import { Box, Button, Text, Avatar, Tip } from "grommet";
+import {
+  Add,
+  Dashboard,
+  Search,
+  Bookmark,
+  History,
+  Chat,
+  Analytics,
+  Nodes,
+  System,
+  Configure,
+  FormPrevious,
+  FormDown,
+} from "grommet-icons";
 import { layout } from "../../theme/tokens";
-import { useLocalStorage } from "../../hooks/useLocalStorage";
-import { timeAgo } from "../../utils/format";
 
 function SectionLabel({ children, collapsed }) {
   if (collapsed) return null;
@@ -12,7 +23,13 @@ function SectionLabel({ children, collapsed }) {
       size="10px"
       weight={700}
       color="text-tertiary"
-      style={{ textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px" }}
+      style={{
+        textTransform: "uppercase",
+        letterSpacing: "0.08em",
+        padding: "0 8px",
+        lineHeight: "16px",
+        display: "block",
+      }}
     >
       {children}
     </Text>
@@ -21,56 +38,65 @@ function SectionLabel({ children, collapsed }) {
 
 function NavItem({ item, active, collapsed, onClick }) {
   const Icon = item.icon;
-  return (
-    <Button plain onClick={onClick} a11yTitle={item.label}>
-      <Box
-        direction="row"
-        align="center"
-        gap="small"
-        pad={{ vertical: "10px", horizontal: collapsed ? "small" : "medium" }}
-        round="8px"
-        justify={collapsed ? "center" : "start"}
-        background={active ? "accent-1" : "transparent"}
-        style={{ transition: "background-color 200ms ease" }}
-        title={collapsed ? item.label : undefined}
-        className="sidebar-nav-item"
-      >
-        <Icon size="18px" color={active ? "#04231A" : "text-secondary"} />
-        {!collapsed && (
-          <Text size="small" weight={active ? 700 : 500} color={active ? "#04231A" : "text-secondary"}>
+  const content = (
+    <Box
+      direction="row"
+      align="center"
+      gap="12px"
+      height={layout.itemHeight}
+      pad={{ horizontal: collapsed ? "0" : "16px" }}
+      round="8px"
+      justify={collapsed ? "center" : "start"}
+      background={active ? "accent-1" : "transparent"}
+      style={{ transition: "background-color 200ms ease", flexShrink: 0 }}
+      className="sidebar-nav-item"
+    >
+      <Icon size={layout.iconSize} color={active ? "#0B1710" : "text-secondary"} style={{ flexShrink: 0 }} />
+      {!collapsed && (
+        <Box style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            size="body"
+            weight={active ? 700 : 500}
+            color={active ? "#0B1710" : "text-secondary"}
+            style={{
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              display: "block",
+            }}
+          >
             {item.label}
           </Text>
-        )}
-      </Box>
-    </Button>
+        </Box>
+      )}
+    </Box>
   );
-}
 
-function HistoryItem({ entry, collapsed, onClick }) {
-  if (collapsed) return null;
   return (
-    <Button plain onClick={onClick} a11yTitle={entry.query}>
-      <Box direction="row" align="start" gap="small" pad={{ vertical: "small", horizontal: "medium" }} round="8px" hoverIndicator={{ color: "bg-surface-hover" }}>
-        <Box background="bg-surface-hover" round="6px" pad="6px" flex={{ shrink: 0 }}>
-          <Folder size="14px" color="text-tertiary" />
-        </Box>
-        <Box gap="1px" style={{ minWidth: 0 }}>
-          <Text size="small" weight={500} color="text-secondary" truncate>
-            {entry.query}
-          </Text>
-          <Text size="10px" color="text-tertiary">
-            {timeAgo(entry.timestamp)}
-          </Text>
-        </Box>
-      </Box>
+    <Button plain onClick={onClick} a11yTitle={item.label} style={{ width: "100%" }}>
+      {collapsed ? <Tip content={item.label} dropProps={{ align: { left: "right" } }}>{content}</Tip> : content}
     </Button>
   );
 }
 
-export function Sidebar({ collapsed, activePage, onNavigate, onNewSearch, onToggleCollapse, onRerunHistory, user }) {
-  const [history, setHistory] = useLocalStorage("argus:history", []);
-  const recentHistory = history.slice(0, 3);
+const DISCOVERY_ITEMS = [
+  { key: "dashboard", label: "Dashboard", icon: Dashboard },
+  { key: "discovery", label: "Repository Discovery", icon: Search },
+  { key: "saved", label: "Saved Repositories", icon: Bookmark },
+  { key: "history", label: "Search History", icon: History },
+];
 
+const INTELLIGENCE_ITEMS = [
+  { key: "ai-workspace", label: "AI Workspace", icon: Chat },
+  { key: "analytics", label: "Repository Analytics", icon: Analytics },
+];
+
+const PLATFORM_ITEMS = [
+  { key: "knowledge-graph", label: "Knowledge Graph", icon: Nodes },
+  { key: "system", label: "System Status", icon: System },
+];
+
+export function Sidebar({ collapsed, activePage, onNavigate, onNewSearch, onToggleCollapse, user }) {
   return (
     <Box
       as="nav"
@@ -81,73 +107,71 @@ export function Sidebar({ collapsed, activePage, onNavigate, onNewSearch, onTogg
       style={{ transition: `width ${layout.transition}`, overflow: "hidden" }}
       height="100%"
     >
-      <Box flex overflow={{ vertical: "auto" }} pad={{ vertical: "medium", horizontal: collapsed ? "small" : "medium" }} gap="28px">
-        <Button
-          primary
-          icon={<Add size="16px" />}
-          label={collapsed ? undefined : "New Search"}
-          onClick={onNewSearch}
-          a11yTitle="New search"
-          style={{
-            justifyContent: collapsed ? "center" : "flex-start",
-            paddingLeft: collapsed ? "0" : undefined,
-            width: "100%",
-          }}
-        />
+      <Box flex overflow={{ vertical: "auto", horizontal: "hidden" }} pad={{ vertical: "16px", horizontal: collapsed ? "8px" : "16px" }} style={{ display: "flex", flexDirection: "column", rowGap: "28px", minHeight: 0 }}>
+        <Button plain onClick={onNewSearch} a11yTitle="New search" style={{ width: "100%", flexShrink: 0 }}>
+          <Box
+            direction="row"
+            align="center"
+            justify={collapsed ? "center" : "start"}
+            gap="10px"
+            height={layout.itemHeight}
+            pad={{ horizontal: collapsed ? "0" : "16px" }}
+            round="8px"
+            background="accent-1"
+          >
+            <Add size="16px" color="#0B1710" />
+            {!collapsed && (
+              <Text size="body" weight={700} color="#0B1710">
+                New Search
+              </Text>
+            )}
+          </Box>
+        </Button>
 
-        <Box gap="10px">
-          <SectionLabel collapsed={collapsed}>Discover</SectionLabel>
-          <Box gap="4px">
-            <NavItem item={{ key: "dashboard", label: "Dashboard", icon: Dashboard }} collapsed={collapsed} active={activePage === "dashboard"} onClick={() => onNavigate("dashboard")} />
-            <NavItem item={{ key: "discovery", label: "Repository Discovery", icon: Search }} collapsed={collapsed} active={activePage === "discovery"} onClick={() => onNavigate("discovery")} />
+        <Box style={{ display: "flex", flexDirection: "column", rowGap: "8px", flexShrink: 0 }}>
+          <SectionLabel collapsed={collapsed}>Discovery</SectionLabel>
+          <Box style={{ display: "flex", flexDirection: "column", rowGap: "4px" }}>
+            {DISCOVERY_ITEMS.map((item) => (
+              <NavItem key={item.key} item={item} collapsed={collapsed} active={activePage === item.key} onClick={() => onNavigate(item.key)} />
+            ))}
           </Box>
         </Box>
 
-        <Box gap="10px">
-          <SectionLabel collapsed={collapsed}>Saved</SectionLabel>
-          <Box gap="4px">
-            <NavItem item={{ key: "saved", label: "Saved Repositories", icon: Save }} collapsed={collapsed} active={activePage === "saved"} onClick={() => onNavigate("saved")} />
+        <Box style={{ display: "flex", flexDirection: "column", rowGap: "8px", flexShrink: 0 }}>
+          <SectionLabel collapsed={collapsed}>Intelligence</SectionLabel>
+          <Box style={{ display: "flex", flexDirection: "column", rowGap: "4px" }}>
+            {INTELLIGENCE_ITEMS.map((item) => (
+              <NavItem key={item.key} item={item} collapsed={collapsed} active={activePage === item.key} onClick={() => onNavigate(item.key)} />
+            ))}
           </Box>
         </Box>
 
-        {recentHistory.length > 0 && (
-          <Box gap="10px">
-            <SectionLabel collapsed={collapsed}>History</SectionLabel>
-            <Box gap="2px">
-              <Button
-plain
-label="Clear History"
-icon={<Trash size="14px" />}
-onClick={() => setHistory([])}
-margin={{ bottom: "8px" }}
-/>
-
-{recentHistory.map((entry) => (
-                <HistoryItem key={entry.timestamp} entry={entry} collapsed={collapsed} onClick={() => onRerunHistory?.(entry.query)} />
-              ))}
-            </Box>
+        <Box style={{ display: "flex", flexDirection: "column", rowGap: "8px", flexShrink: 0 }}>
+          <SectionLabel collapsed={collapsed}>Platform</SectionLabel>
+          <Box style={{ display: "flex", flexDirection: "column", rowGap: "4px" }}>
+            {PLATFORM_ITEMS.map((item) => (
+              <NavItem key={item.key} item={item} collapsed={collapsed} active={activePage === item.key} onClick={() => onNavigate(item.key)} />
+            ))}
           </Box>
-        )}
+        </Box>
       </Box>
 
-      <Box flex={{ shrink: 0 }} pad={{ horizontal: collapsed ? "small" : "medium", bottom: "medium" }} gap="4px">
-        <SectionLabel collapsed={collapsed}>System</SectionLabel>
-        <NavItem item={{ key: "system", label: "System Health", icon: Cluster }} collapsed={collapsed} active={activePage === "system"} onClick={() => onNavigate("system")} />
+      <Box flex={{ shrink: 0 }} pad={{ horizontal: collapsed ? "8px" : "16px", bottom: "16px" }} style={{ display: "flex", flexDirection: "column", rowGap: "4px" }}>
         <NavItem item={{ key: "settings", label: "Settings", icon: Configure }} collapsed={collapsed} active={activePage === "settings"} onClick={() => onNavigate("settings")} />
 
-        <Button plain onClick={onToggleCollapse} a11yTitle="Collapse sidebar">
-          <Box direction="row" align="center" gap="small" pad={{ vertical: "small", horizontal: collapsed ? "small" : "medium" }} round="8px" justify={collapsed ? "center" : "start"} hoverIndicator={{ color: "bg-surface-hover" }}>
-            <FormPrevious size="18px" color="text-secondary" style={{ transform: collapsed ? "rotate(180deg)" : undefined }} />
+        <Button plain onClick={onToggleCollapse} a11yTitle="Collapse sidebar" style={{ width: "100%" }}>
+          <Box direction="row" align="center" gap="12px" height={layout.itemHeight} pad={{ horizontal: collapsed ? "0" : "16px" }} round="8px" justify={collapsed ? "center" : "start"} hoverIndicator={{ color: "bg-surface-hover" }}>
+            <FormPrevious size={layout.iconSize} color="text-secondary" style={{ transform: collapsed ? "rotate(180deg)" : undefined }} />
             {!collapsed && (
-              <Text size="small" weight={500} color="text-secondary">
+              <Text size="body" weight={500} color="text-secondary">
                 Collapse
               </Text>
             )}
           </Box>
         </Button>
 
-        <Box border={{ side: "top", color: "border-subtle" }} margin={{ top: "small" }} pad={{ top: "small" }}>
-          <Box direction="row" align="center" gap="small" pad={{ vertical: "6px", horizontal: collapsed ? "small" : "small" }} round="8px" justify={collapsed ? "center" : "start"} style={{ cursor: "pointer" }} hoverIndicator={{ color: "bg-surface-hover" }}>
+        <Box border={{ side: "top", color: "border-subtle" }} margin={{ top: "8px" }} pad={{ top: "8px" }}>
+          <Box direction="row" align="center" gap="10px" pad={{ vertical: "6px", horizontal: collapsed ? "0" : "8px" }} round="8px" justify={collapsed ? "center" : "start"} style={{ cursor: "pointer" }} hoverIndicator={{ color: "bg-surface-hover" }} onClick={() => onNavigate("settings")}>
             <Avatar size="28px" background="accent-soft" flex={{ shrink: 0 }}>
               <Text size="xsmall" weight={700} color="accent-1">
                 {user?.initials || "KS"}
@@ -160,7 +184,7 @@ margin={{ bottom: "8px" }}
                     {user?.name || "Kavya S N"}
                   </Text>
                   <Text size="10px" color="text-tertiary" truncate>
-                    {user?.role || "HPE Developer"}
+                    {user?.role || "Developer"}
                   </Text>
                 </Box>
                 <FormDown size="16px" color="text-tertiary" />

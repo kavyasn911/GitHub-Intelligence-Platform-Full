@@ -1,11 +1,12 @@
-import { darkTokens, lightTokens, type } from "./tokens";
+import { darkTokens, lightTokens, type, radius } from "./tokens";
 
-// Builds a Grommet theme object from our token set.
-// Grommet reads global.colors by name, so every token is registered
-// under a matching semantic key that components reference directly
+// Builds a Grommet theme object from our token set. Grommet reads
+// global.colors by name, so every token is registered under a matching
+// semantic key that components reference directly
 // (e.g. background="bg-surface", border="border-subtle").
 function buildTheme(tokens) {
   const c = tokens.color;
+  const onAccent = "#0B1710"; // text color on top of the green primary
 
   return {
     global: {
@@ -23,24 +24,27 @@ function buildTheme(tokens) {
         "accent-1": c.accent,
         "accent-soft": c.accentSoft,
         "accent-strong": c.accentStrong,
+        success: c.success,
+        "success-soft": c.successSoft,
         critical: c.critical,
         "critical-soft": c.criticalSoft,
         warning: c.warning,
         "warning-soft": c.warningSoft,
         info: c.info,
+        "info-soft": c.infoSoft,
+        focus: c.focus,
         text: c.textPrimary,
         background: c.bgBase,
         border: c.borderSubtle,
-        focus: c.accent,
       },
       font: {
         family: type.fontBody,
-        size: type.scale.md,
-        height: "22px",
+        size: type.scale.body,
+        height: "24px",
       },
       focus: {
-        border: { color: "accent-1" },
-        outline: { color: "accent-1" },
+        border: { color: "focus" },
+        outline: { color: "focus" },
       },
       edgeSize: {
         xs: "4px",
@@ -57,52 +61,73 @@ function buildTheme(tokens) {
     },
 
     button: {
-      border: { radius: "8px" },
+      border: { radius: radius.sm },
       padding: { horizontal: "16px", vertical: "9px" },
       primary: {
         color: "brand",
         extend: `
-          color: ${tokens.mode === "dark" ? "#04231A" : "#FFFFFF"};
+          color: ${onAccent};
           font-weight: 600;
+          transition: background-color 200ms ease, transform 150ms ease;
           &:hover { background-color: ${c.accentStrong}; }
+          &:active { transform: translateY(1px); }
         `,
       },
       secondary: {
         border: { color: "border-strong", width: "1px" },
         extend: `
+          font-weight: 600;
+          transition: background-color 200ms ease, border-color 200ms ease;
           &:hover { background-color: ${c.bgSurfaceHover}; border-color: ${c.accent}; }
         `,
+      },
+      option: {
+        extend: `
+          color: ${c.accent};
+          font-weight: 600;
+          &:hover { background-color: ${c.accentSoft}; }
+        `,
+      },
+      disabled: {
+        opacity: 0.45,
       },
     },
 
     card: {
       container: {
         background: "bg-surface-raised",
-        round: "12px",
-        elevation: tokens.mode === "dark" ? "none" : "small",
+        round: radius.md,
+        elevation: "none",
         extend: `border: 1px solid ${c.borderSubtle};`,
       },
     },
 
     layer: {
       background: "bg-surface",
+      border: { radius: radius.md },
+      overlay: { background: "rgba(6, 8, 12, 0.6)" },
+    },
+
+    textInput: {
+      extend: `font-family: ${type.fontBody};`,
     },
 
     text: {
-      xsmall: { size: type.scale.xs, height: "16px" },
-      small: { size: type.scale.sm, height: "18px" },
-      medium: { size: type.scale.md, height: "22px" },
-      large: { size: type.scale.lg, height: "26px" },
-      xlarge: { size: type.scale.xl, height: "30px" },
-      xxlarge: { size: type.scale.xxl, height: "36px" },
+      xsmall: { size: type.scale.caption, height: "16px" },
+      small: { size: type.scale.bodySmall, height: "20px" },
+      medium: { size: type.scale.body, height: "24px" },
+      large: { size: type.scale.heading3, height: "26px" },
+      xlarge: { size: type.scale.heading2, height: "28px" },
+      xxlarge: { size: type.scale.heading1, height: "32px" },
     },
 
     heading: {
       font: { family: type.fontDisplay },
       weight: 600,
       level: {
-        1: { small: { size: "26px", height: "32px" }, medium: { size: "30px", height: "36px" } },
-        2: { small: { size: "20px", height: "26px" }, medium: { size: "22px", height: "28px" } },
+        1: { small: { size: "26px", height: "32px" }, medium: { size: type.scale.display, height: "40px" } },
+        2: { small: { size: "20px", height: "26px" }, medium: { size: type.scale.heading1, height: "30px" } },
+        3: { small: { size: "17px", height: "22px" }, medium: { size: type.scale.heading3, height: "24px" } },
       },
     },
 
@@ -111,6 +136,11 @@ function buildTheme(tokens) {
         background: "bg-surface-raised",
         elevation: "medium",
       },
+    },
+
+    checkBox: {
+      color: "accent-1",
+      hover: { border: { color: "accent-1" } },
     },
   };
 }

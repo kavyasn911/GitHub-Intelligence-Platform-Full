@@ -73,7 +73,7 @@ const alternativesRef = useRef(null);
   );
 
   return (
-    <Box pad={{ horizontal: "large", vertical: "large" }} gap="18px" style={{ maxWidth: "1200px", width:"100%" }}>
+    <Box gap="18px" style={{ maxWidth: "1200px", width:"100%" }}>
       <Box gap="6px">
         <Heading level={2} margin="none" color="text-primary" size="26px">
           Repository Discovery

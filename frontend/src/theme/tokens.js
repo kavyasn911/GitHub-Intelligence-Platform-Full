@@ -1,76 +1,111 @@
-// Argus design tokens
-// Single source of truth for color, type, spacing, and motion.
-// Grommet theme + any styled-components both read from here.
+// HPE Design System tokens — single source of truth for color, type,
+// spacing, radius, and motion. Values are copied exactly from the
+// approved HPE Design System reference (colors, spacing scale,
+// typography scale, borders/radius, elevation) rather than approximated.
+//
+// The reference system only defines one (dark) mode. We derive a light
+// mode by inverting surfaces while keeping the same semantic roles, so
+// the theme toggle still works, but dark is the primary/approved mode.
 
-// HPE brand alignment: HPE Green (#01A982) as the single accent across
-// modes, with GreenLake's near-black slate as the dark background rather
-// than the previous green-tinted neutral. Values matched against the
-// provided HPE lockup + GreenLake product screenshots.
 export const darkTokens = {
   mode: "dark",
   color: {
-    bgBase: "#0A0F1A",
-    bgSurface: "#101623",
-    bgSurfaceRaised: "#161D2C",
-    bgSurfaceHover: "#1C2434",
-    borderSubtle: "#232C3F",
-    borderStrong: "#333F57",
-    textPrimary: "#F2F4F7",
-    textSecondary: "#9AA5B8",
-    textTertiary: "#6B7690",
-    accent: "#01A982",
-    accentSoft: "rgba(1, 169, 130, 0.14)",
-    accentStrong: "#28C79E",
-    critical: "#FF6B6B",
-    criticalSoft: "rgba(255, 107, 107, 0.12)",
-    warning: "#FFC069",
-    warningSoft: "rgba(255, 192, 105, 0.12)",
-    info: "#5CB8FF",
+    bgBase: "#1F2028", // Back (Background)
+    bgSurface: "#2B2F3E", // Surface (Secondary)
+    bgSurfaceRaised: "#2B2F3E", // Surface (Card)
+    bgSurfaceHover: "#343949",
+    borderSubtle: "#4A5163", // Border
+    borderStrong: "#5B6478",
+    textPrimary: "#FFFFFF", // Text (Primary)
+    textSecondary: "#C8CDD8", // Text (Secondary)
+    textTertiary: "#8B93A6",
+    accent: "#00C781", // Primary (HPE Green)
+    accentSoft: "rgba(0, 199, 129, 0.14)",
+    accentStrong: "#00E588",
+    success: "#008F5A",
+    successSoft: "rgba(0, 143, 90, 0.14)",
+    warning: "#E5A000",
+    warningSoft: "rgba(229, 160, 0, 0.14)",
+    critical: "#D63232",
+    criticalSoft: "rgba(214, 50, 50, 0.14)",
+    info: "#0065FF",
+    infoSoft: "rgba(0, 101, 255, 0.14)",
+    focus: "#A25FFF",
   },
 };
 
 export const lightTokens = {
   mode: "light",
   color: {
-    bgBase: "#F4F6F9",
+    bgBase: "#F4F5F7",
     bgSurface: "#FFFFFF",
     bgSurfaceRaised: "#FFFFFF",
-    bgSurfaceHover: "#EDF1F5",
-    borderSubtle: "#DFE4EC",
-    borderStrong: "#C4CBD8",
-    textPrimary: "#0F1521",
-    textSecondary: "#4B566B",
-    textTertiary: "#7A8496",
-    accent: "#017A63",
-    accentSoft: "rgba(1, 122, 99, 0.10)",
-    accentStrong: "#01614F",
-    critical: "#D63C3C",
-    criticalSoft: "rgba(214, 60, 60, 0.10)",
+    bgSurfaceHover: "#EDEFF3",
+    borderSubtle: "#D8DCE4",
+    borderStrong: "#C0C6D2",
+    textPrimary: "#1F2028",
+    textSecondary: "#4A5163",
+    textTertiary: "#767F94",
+    accent: "#008F5A",
+    accentSoft: "rgba(0, 143, 90, 0.10)",
+    accentStrong: "#00734A",
+    success: "#008F5A",
+    successSoft: "rgba(0, 143, 90, 0.10)",
     warning: "#B5790A",
     warningSoft: "rgba(181, 121, 10, 0.10)",
-    info: "#0A6FB5",
+    critical: "#C22A2A",
+    criticalSoft: "rgba(194, 42, 42, 0.10)",
+    info: "#0057D8",
+    infoSoft: "rgba(0, 87, 216, 0.10)",
+    focus: "#8A3FE0",
   },
 };
 
+// 3. Typography (HPE Text / Inter)
 export const type = {
-  fontDisplay: '"Metric", "Inter", -apple-system, "Segoe UI", sans-serif',
-  fontBody: '"Metric", "Inter", -apple-system, "Segoe UI", sans-serif',
+  fontDisplay: '"Inter", -apple-system, "Segoe UI", sans-serif',
+  fontBody: '"Inter", -apple-system, "Segoe UI", sans-serif',
   fontMono: '"IBM Plex Mono", "SFMono-Regular", Menlo, monospace',
   scale: {
-    xs: "12px",
-    sm: "13px",
-    md: "15px",
-    lg: "18px",
-    xl: "22px",
-    xxl: "28px",
+    caption: "12px",
+    bodySmall: "14px",
+    body: "16px",
+    heading3: "18px",
+    heading2: "20px",
+    heading1: "24px",
+    display: "32px",
   },
 };
+
+// 4. Spacing system — multiples of 8px
+export const space = {
+  4: "4px",
+  8: "8px",
+  12: "12px",
+  16: "16px",
+  24: "24px",
+  32: "32px",
+  40: "40px",
+  48: "48px",
+  64: "64px",
+};
+
+// 5. Borders & radius
+export const radius = {
+  sm: "8px",
+  md: "12px",
+  lg: "16px",
+};
+export const borderWidth = "1px";
 
 export const layout = {
   topbarHeight: "64px",
-  sidebarExpanded: "248px",
+  sidebarExpanded: "260px",
   sidebarCollapsed: "72px",
-  radius: "12px",
-  radiusSm: "8px",
-  transition: "200ms cubic-bezier(0.4, 0, 0.2, 1)",
+  itemHeight: "44px",
+  iconSize: "20px",
+  radius: radius.md,
+  radiusSm: radius.sm,
+  radiusLg: radius.lg,
+  transition: "260ms cubic-bezier(0.4, 0, 0.2, 1)",
 };

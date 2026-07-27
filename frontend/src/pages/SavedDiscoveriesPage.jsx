@@ -12,7 +12,7 @@ export function SavedDiscoveriesPage({ onRerun }) {
   const recent = history.slice(0, 5);
 
   return (
-    <Box pad={{ horizontal: "medium", vertical: "large" }} gap="large" style={{ maxWidth: "980px" }}>
+    <Box gap="large" style={{ maxWidth: "980px" }}>
       <Box gap="4px">
         <Heading level={2} margin="none" color="text-primary">Saved Discoveries</Heading>
         <Text color="text-secondary">Recent searches and saved repositories.</Text>

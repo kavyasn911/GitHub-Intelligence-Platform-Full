@@ -70,7 +70,7 @@ export function RepositoryDetailsPage() {
   const componentsAvailable = components.status === "success" && components.data?.components;
 
   return (
-    <Box pad={{ horizontal: "large", vertical: "large" }} gap="18px" style={{ maxWidth: "1100px", width: "100%" }}>
+    <Box gap="18px" style={{ maxWidth: "1100px", width: "100%" }}>
       <Box direction="row" align="center" gap="small">
         <Button plain icon={<FormPrevious size="16px" />} onClick={() => navigate(-1)} a11yTitle="Back" />
         <Box gap="2px" flex>

@@ -98,4 +98,44 @@ export async function apiDelete(path, { timeoutMs = 30000 } = {}) {
   }
 }
 
+export async function apiPost(path, body = undefined, { timeoutMs = 60000 } = {}) {
+  const url = new URL(`${getBaseUrl()}${path}`);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    console.warn(`Request timed out after ${timeoutMs} ms`);
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    const response = await fetch(url.toString(), {
+      method: "POST",
+      signal: controller.signal,
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    if (!response.ok) {
+      let detail = response.statusText;
+      try {
+        const respBody = await response.json();
+        detail = respBody.detail || respBody.message || detail;
+      } catch {
+        // response wasn't JSON — keep statusText
+      }
+      throw new ApiError(detail, response.status);
+    }
+
+    return await response.json();
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new ApiError("The request timed out. Is the backend running?", 0);
+    }
+    if (err instanceof ApiError) throw err;
+    throw new ApiError("Could not reach the backend. Check that it's running and the API URL is correct.", 0);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export { getBaseUrl, DEFAULT_BASE_URL };

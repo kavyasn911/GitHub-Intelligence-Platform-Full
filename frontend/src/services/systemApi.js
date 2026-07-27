@@ -1,4 +1,4 @@
-import { apiGet, apiDelete } from "./apiClient";
+import { apiGet, apiDelete, apiPost } from "./apiClient";
 
 // Maps 1:1 to backend.app.api.v1.github — organization / system intelligence
 // endpoints that already exist on the backend but aren't called anywhere
@@ -32,6 +32,16 @@ export function getAuditEvents(limit = 8) {
 // GET /github/graph/stats -> Neo4j node/relationship counts by label/type
 export function getGraphStatistics() {
   return apiGet("/github/graph/stats");
+}
+
+// POST /github/graph/sync -> re-sync the knowledge graph from the indexed repositories
+export function synchronizeGraph() {
+  return apiPost("/github/graph/sync");
+}
+
+// GET /github/graph/technology/{technology} -> repositories using a given technology
+export function getTechnologyRepositories(technology) {
+  return apiGet(`/github/graph/technology/${encodeURIComponent(technology)}`);
 }
 
 // GET /github/performance/cache/stats -> Redis key count + server info

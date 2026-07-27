@@ -8,7 +8,7 @@ export function HistoryPage({ onRerun }) {
   const [history, setHistory] = useLocalStorage("argus:history", []);
 
   return (
-    <Box pad={{ horizontal: "medium", vertical: "large" }} gap="medium" style={{ maxWidth: "780px" }}>
+    <Box gap="medium" style={{ maxWidth: "780px" }}>
       <Box direction="row" justify="between" align="center">
         <Box gap="4px">
           <Heading level={2} margin="none" color="text-primary">History</Heading>

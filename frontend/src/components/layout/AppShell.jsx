@@ -5,9 +5,9 @@ import { darkTokens, lightTokens } from "../../theme/tokens";
 import { Topbar } from "./Topbar";
 import { Sidebar } from "./Sidebar";
 
-const CURRENT_USER = { name: "Kavya S N", role: "HPE Developer", initials: "KS" };
+const CURRENT_USER = { name: "Kavya S N", role: "Developer", initials: "KS" };
 
-function ShellBody({ activePage, onNavigate, onNewSearch, onRerunHistory, mode, setMode, accent, wordColor, children }) {
+function ShellBody({ activePage, onNavigate, onNewSearch, mode, setMode, accent, children }) {
   const size = useContext(ResponsiveContext);
   const isSmall = size === "small";
 
@@ -37,33 +37,24 @@ function ShellBody({ activePage, onNavigate, onNewSearch, onRerunHistory, mode, 
     activePage,
     onNavigate: handleNavigate,
     onNewSearch,
-    onRerunHistory,
     onToggleCollapse: handleToggleSidebar,
     user: CURRENT_USER,
   };
 
   return (
-    <Box style={{
-  minHeight:"100vh",
-  display:"flex"
-}} background="bg-base">
+    <Box style={{ height: "100vh", display: "flex", overflow: "hidden" }} background="bg-base">
+      {/* Topbar mounts once for the app's lifetime (client-side routing
+          doesn't remount the shell), so its logo's on-load transform
+          animation plays exactly once per page load — no separate splash
+          screen needed. */}
       <Topbar
         onToggleSidebar={handleToggleSidebar}
         mode={mode}
         onToggleMode={() => setMode((m) => (m === "dark" ? "light" : "dark"))}
         accent={accent}
-        user={CURRENT_USER}
-        onAvatarClick={() => handleNavigate("settings")}
       />
 
-      <Box
-        direction="row"
-        flex
-        style={{
-          minHeight: 0,
-          overflow: "visible"
-        }}
-      >
+      <Box direction="row" flex style={{ minHeight: 0, overflow: "visible" }}>
         {!isSmall && <Sidebar collapsed={collapsed} {...sidebarProps} />}
 
         {isSmall && mobileOpen && (
@@ -72,52 +63,41 @@ function ShellBody({ activePage, onNavigate, onNewSearch, onRerunHistory, mode, 
           </Layer>
         )}
 
-        
-<Box
+        <Box
           as="main"
           flex
           background="bg-base"
           style={{
-            overflowY:"auto",
-            overflowX:"hidden",
-            flex:1,
+            overflowY: "auto",
+            overflowX: "hidden",
+            flex: 1,
+            minHeight: 0,
             display: "block",
-            padding: "32px"
+            padding: "32px",
           }}
         >
-          <Box
-            style={{
-              width: "100%",
-              maxWidth: "1280px",
-              margin: "0 auto"
-            }}
-          >
-            {children}
-          </Box>
+          <Box style={{ width: "100%", maxWidth: "1280px", margin: "0 auto" }}>{children}</Box>
         </Box>
-
       </Box>
     </Box>
   );
 }
 
-export function AppShell({ activePage, onNavigate, onNewSearch, onRerunHistory, children }) {
+export function AppShell({ activePage, onNavigate, onNewSearch, children }) {
   const [mode, setMode] = useState("dark");
+
   const theme = mode === "dark" ? darkTheme : lightTheme;
   const accent = mode === "dark" ? darkTokens.color.accent : lightTokens.color.accent;
-  const wordColor = mode === "dark" ? darkTokens.color.textPrimary : lightTokens.color.textPrimary;
 
   return (
-    <Grommet theme={theme} background="bg-base" full themeMode={mode}>
+    <Grommet theme={theme} background="bg-base" full="min" themeMode={mode}>
       <ShellBody
         activePage={activePage}
         onNavigate={onNavigate}
         onNewSearch={onNewSearch}
-        onRerunHistory={onRerunHistory}
         mode={mode}
         setMode={setMode}
         accent={accent}
-        wordColor={wordColor}
       >
         {children}
       </ShellBody>

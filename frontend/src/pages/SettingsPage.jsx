@@ -43,7 +43,7 @@ export function SettingsPage() {
   }
 
   return (
-    <Box pad={{ horizontal: "medium", vertical: "large" }} gap="medium" style={{ maxWidth: "640px" }}>
+    <Box gap="medium" style={{ maxWidth: "640px" }}>
       <Box gap="4px">
         <Heading level={2} margin="none" color="text-primary">Settings</Heading>
         <Text color="text-secondary">Workspace and account preferences.</Text>
