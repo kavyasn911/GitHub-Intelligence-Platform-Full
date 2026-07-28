@@ -54,8 +54,8 @@ export function healthCopy(status) {
 // Backend doesn't return a single 0-1 "confidence" for requirement intelligence,
 // so we derive a readable label from how it was produced.
 export function requirementConfidence(mode) {
-  if (mode === "llm") return { label: "High", tone: "accent" };
-  if (mode === "deterministic_fallback") return { label: "Medium", tone: "warning" };
+  if (mode === "llm") return { label: "High (LLM)", tone: "accent" };
+  if (mode === "intelligent_fallback") return { label: "Fallback (keyword-only)", tone: "warning" };
   return { label: "—", tone: "text-tertiary" };
 }
 

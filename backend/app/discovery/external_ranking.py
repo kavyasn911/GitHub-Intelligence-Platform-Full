@@ -162,7 +162,7 @@ class ExternalRepositoryRankingService:
 
             general_relevance_score = (
                 general_relevance_result.get(
-                    "general_relevance_score",
+                    "score",
                     0.0,
                 )
             )

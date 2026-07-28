@@ -32,8 +32,6 @@ class GlobalGitHubSearchService:
 
                 results = self.client.search_repositories(
                     query=query,
-                    sort="stars",
-                    order="desc",
                 )
 
                 collected = 0

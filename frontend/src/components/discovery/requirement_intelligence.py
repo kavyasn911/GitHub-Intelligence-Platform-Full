@@ -116,6 +116,20 @@ RULES:
         "analytics": "data analytics",
         "report": "report generation",
         "reports": "report generation",
+
+        "resume": "resume parsing",
+        "resume screening": "resume screening",
+        "candidate ranking": "candidate ranking",
+        "candidate": "candidate management",
+        "screening": "applicant screening",
+        "interview scheduling": "interview scheduling",
+        "interview": "interview management",
+        "scheduling": "scheduling",
+        "hiring": "hiring workflow",
+        "recruitment": "recruitment workflow",
+        "ats": "applicant tracking",
+        "applicant tracking": "applicant tracking",
+        "hr": "human resources workflow",
     }
 
     PROJECT_PATTERNS = [
@@ -158,6 +172,22 @@ RULES:
         (
             ["chatbot"],
             "AI Chatbot",
+        ),
+        (
+            ["resume"],
+            "Resume Screening System",
+        ),
+        (
+            ["candidate", "ranking"],
+            "Candidate Ranking System",
+        ),
+        (
+            ["hiring"],
+            "Recruitment Platform",
+        ),
+        (
+            ["recruitment"],
+            "Recruitment Platform",
         ),
         (
             ["dashboard"],
@@ -478,26 +508,8 @@ Return only the required JSON.
         specification,
     ):
 
-        query_lower = query.lower()
-
-        llm_technologies = specification.get(
-            "technologies",
-            [],
-        )
-
-        grounded_technologies = [
-            technology
-            for technology in llm_technologies
-            if technology.lower() in query_lower
-        ]
-
-        for technology in self._detect_technologies(query):
-
-            if technology not in grounded_technologies:
-                grounded_technologies.append(technology)
-
-        specification["technologies"] = list(
-            dict.fromkeys(grounded_technologies)
+        specification["technologies"] = (
+            self._detect_technologies(query)
         )
 
         return specification

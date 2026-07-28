@@ -262,6 +262,7 @@ class RepositoryDiscoveryService:
                 "model": requirement_result.get("model"),
                 "specification": specification,
                 "semantic_query": semantic_query,
+                "llm_error": requirement_result.get("llm_error"),
             },
             "query_plan": {
                 "original_query": query,

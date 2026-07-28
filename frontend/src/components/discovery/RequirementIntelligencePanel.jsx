@@ -53,6 +53,19 @@ export function RequirementIntelligencePanel({ requirementIntelligence, queryPla
 
       {expanded && (
         <Box pad={{ horizontal: "medium", bottom: "medium" }} gap="medium">
+          {requirementIntelligence.mode === "intelligent_fallback" && (
+            <Box background="warning-soft" round="8px" pad="10px" gap="4px">
+              <Text size="xsmall" weight={700} color="warning">
+                LLM analysis unavailable — used keyword matching instead
+              </Text>
+              <Text size="xsmall" color="text-secondary">
+                This covers common domains (dashboards, auth, monitoring) but will miss anything more
+                specific — search quality below is limited as a result.
+                {requirementIntelligence.llm_error ? ` Reason: ${requirementIntelligence.llm_error}` : ""}
+              </Text>
+            </Box>
+          )}
+
           {spec.summary && (
             <Text size="small" color="text-secondary" style={{ lineHeight: "1.55" }}>
               {spec.summary}

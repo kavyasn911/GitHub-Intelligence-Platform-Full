@@ -159,9 +159,18 @@ export function RepositoryIntelligenceContent({ repository, showBusinessValue = 
                   </Box>
                 )}
                 {reuse.reusable_components?.length > 0 && (
-                  <Box direction="row" wrap gap="6px" margin={{ top: "4px" }}>
-                    {reuse.reusable_components.map((item, i) => (
-                      <Badge key={i} label={item} tone="info" />
+                  <Box gap="8px" margin={{ top: "4px" }}>
+                    {reuse.reusable_components.map((component, i) => (
+                      <Box key={i} gap="4px">
+                        <Text size="10px" weight={600} color="text-tertiary" style={{ textTransform: "uppercase" }}>
+                          {(component.type || "component").replace(/_/g, " ")}
+                        </Text>
+                        <Box direction="row" wrap gap="6px">
+                          {(component.items || []).map((entry, j) => (
+                            <Badge key={j} label={entry} tone="info" />
+                          ))}
+                        </Box>
+                      </Box>
                     ))}
                   </Box>
                 )}

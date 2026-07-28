@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { Box, Heading, Text, Button } from "grommet";
 import { GenAI } from "grommet-icons";
 import { SearchWorkspace } from "../components/discovery/SearchWorkspace";
@@ -7,16 +7,29 @@ import { ThinkingTimeline } from "../components/timeline/ThinkingTimeline";
 import { FeaturedRepositoryCard } from "../components/repository/FeaturedRepositoryCard";
 import { RepositoryList } from "../components/repository/RepositoryList";
 import { RepositorySkeletonList } from "../components/repository/RepositorySkeleton";
+import { AdvancedSearchResults } from "../components/discovery/AdvancedSearchResults";
 import { EmptyState, ErrorState } from "../components/common/StateViews";
-import { discoverRepositories } from "../services/discoveryApi";
+import { discoverRepositories, advancedSearch } from "../services/discoveryApi";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useSessionStorage } from "../hooks/useSessionStorage";
 import { useSavedRepositories } from "../hooks/useSavedRepositories";
 
 export function DiscoveryPage({ initialQuery }) {
-  const [status, setStatus] = useState("idle"); // idle | loading | success | error
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-  const [activeQuery, setActiveQuery] = useState(initialQuery || "");
+  // Persisted to sessionStorage (not plain useState) so that navigating to
+  // another page and back doesn't wipe the last search — this was resetting
+  // to a blank "new search" state before, since React unmounts this page's
+  // component state entirely on route change.
+  const [searchState, setSearchState] = useSessionStorage("argus:lastSearch", {
+    status: "idle", // idle | loading | success | error
+    result: null,
+    searchMode: "discover", // discover | portfolio
+    error: null,
+    activeQuery: initialQuery || "",
+  });
+  const { status, result, searchMode, error, activeQuery } = searchState;
+
+  const patchSearchState = (patch) => setSearchState((prev) => ({ ...prev, ...patch }));
+
   const [, setHistory] = useLocalStorage("argus:history", []);
   const { isSaved, toggleSave } = useSavedRepositories();
 
@@ -24,16 +37,31 @@ const resultsRef = useRef(null);
 const alternativesRef = useRef(null);
 
   const runSearch = useCallback(
-    async ({ query, resultLimit }) => {
-      setStatus("loading");
-      setError(null);
-      setActiveQuery(query);
+    async ({ query, resultLimit, mode = "discover" }) => {
+      patchSearchState({ status: "loading", error: null, activeQuery: query, searchMode: mode });
 
       try {
+        if (mode === "portfolio") {
+          // Ranked semantic search over the indexed repository set —
+          // distinct response shape from /github/discovery, so it's kept
+          // in its own branch rather than forced into the discovery UI.
+          const data = await advancedSearch(query, resultLimit || 8);
+          patchSearchState({ result: data, status: "success" });
+
+          setTimeout(() => {
+            resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 250);
+
+          setHistory((prev) => [
+            { query, timestamp: new Date().toISOString(), bestMatch: data.results?.[0]?.payload?.full_name || null },
+            ...prev.filter((h) => h.query !== query),
+          ].slice(0, 25));
+          return;
+        }
+
         const data = await discoverRepositories({ query, resultLimit });
 
-        setResult(data);
-        setStatus("success");
+        patchSearchState({ result: data, status: "success" });
 
         setTimeout(() => {
           resultsRef.current?.scrollIntoView({
@@ -47,8 +75,7 @@ const alternativesRef = useRef(null);
           ...prev.filter((h) => h.query !== query),
         ].slice(0, 25));
       } catch (err) {
-        setError(err.message || "Discovery failed.");
-        setStatus("error");
+        patchSearchState({ error: err.message || "Search failed.", status: "error" });
       }
     },
     [setHistory]
@@ -56,15 +83,12 @@ const alternativesRef = useRef(null);
 
   useEffect(() => {
   if (initialQuery === "") {
-    setActiveQuery("");
-    setResult(null);
-    setError(null);
-    setStatus("idle");
+    patchSearchState({ activeQuery: "", result: null, error: null, status: "idle" });
     return;
   }
 
   if (initialQuery) {
-    setActiveQuery(initialQuery);
+    patchSearchState({ activeQuery: initialQuery });
   }
 }, [initialQuery]);
 
@@ -73,7 +97,7 @@ const alternativesRef = useRef(null);
   );
 
   return (
-    <Box gap="18px" style={{ maxWidth: "1200px", width:"100%" }}>
+    <Box pad={{ horizontal: "large", vertical: "large" }} gap="18px" style={{ maxWidth: "1200px", width:"100%" }}>
       <Box gap="6px">
         <Heading level={2} margin="none" color="text-primary" size="26px">
           Repository Discovery
@@ -91,7 +115,7 @@ const alternativesRef = useRef(null);
       )}
 
       {status === "error" && (
-        <ErrorState message={error} onRetry={() => runSearch({ query: activeQuery, resultLimit: 5 })} />
+        <ErrorState message={error} onRetry={() => runSearch({ query: activeQuery, resultLimit: 5, mode: searchMode })} />
       )}
 
       {status === "idle" && activeQuery.trim() === "" && (
@@ -102,7 +126,13 @@ const alternativesRef = useRef(null);
         />
       )}
 
-      {status === "success" && result && (
+      {status === "success" && result && searchMode === "portfolio" && (
+        <Box ref={resultsRef} gap="18px">
+          <AdvancedSearchResults results={result.results} />
+        </Box>
+      )}
+
+      {status === "success" && result && searchMode === "discover" && (
         <Box
           ref={resultsRef}
           gap="18px"

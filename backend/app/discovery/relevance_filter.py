@@ -127,16 +127,13 @@ class RepositoryRelevanceFilter:
                 + len(concept_matches)
             )
 
-            strong_direct_match = len(direct_matches) >= 1
-            broad_concept_match = len(concept_matches) >= 1
             strong_relevance = relevance_score >= 1.0
 
             accepted_repository = (
                 semantic_context_available
                 and not repository.get("archived", False)
                 and (
-                    strong_direct_match
-                    or broad_concept_match
+                    match_evidence >= minimum_overlap
                     or strong_relevance
                 )
             )

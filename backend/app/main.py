@@ -1,3 +1,15 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Must run before any other `backend.app...` import — those modules read
+# config via os.getenv() at import/instantiation time, and pydantic-settings
+# (used in core/config.py) only populates its OWN Settings object, not the
+# real process environment. Without this, .env values like OLLAMA_MODEL,
+# NEO4J_URI, etc. are silently ignored outside Docker (where env_file: does
+# this injection for you automatically).
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

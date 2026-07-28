@@ -19,11 +19,11 @@ def get_repositories():
 
 
 @router.post("/index")
-def index_repositories(force: bool = False):
+def index_repositories():
 
     from backend.app.indexing.repository_indexer import RepositoryIntelligenceIndexer
 
-    return RepositoryIntelligenceIndexer().build(force=force)
+    return RepositoryIntelligenceIndexer().build()
 
 
 @router.get("/index/jobs")
@@ -441,7 +441,17 @@ def discover_global_repositories(
     result_limit: int = Query(5, ge=1, le=20),
 ):
 
+    from backend.app.discovery.query_validator import QueryValidator
     from backend.app.discovery.discovery_service import RepositoryDiscoveryService
+
+    validation = QueryValidator().validate(query)
+
+    if validation.get("status") != "valid":
+        return {
+            "status": validation.get("status"),
+            "query": query,
+            "message": validation.get("message"),
+        }
 
     return RepositoryDiscoveryService().discover(
         query=query,
